@@ -1,266 +1,118 @@
+const optionsMariaDB = require('../options/mariaDB');
+const knex = require('knex')(optionsMariaDB);
+const optionsSQLITE = require('../options/SQLite3');
+const knex2 = require('knex')(optionsSQLITE);
+const express = require('express');
+const { Server: IOServer } = require('socket.io');
+const { Server: HttpServer} = require('http');
+const exphbs = require("express-handlebars");
 
-const express = require( "express" );
-const { Router } = express
 
 const app = express();
-const router = Router()
-const PORT = 8080;
-const Admin = true
+const httpServer = new HttpServer(app);
+const io = new IOServer(httpServer);
 
-app.use( express.json() );
-app.use( express.urlencoded({ extended: true }) );
-app.use("/static", express.static("public"))
+const PORT = 8080 || process.env.PORT;
 
-app.use("/api", router)
+let productos = {}
+app.engine(
+    "hbs",
+    exphbs.engine(
+        {
+            extname: "hbs",
+            defaultLayout: 'index.hbs',
+        }
+    )
+)
 
-class Server {
-    constructor(products, carts) {
-        this.products = products 
-        this.carts = carts
-    }
-    
-    getAllProducts() {
-        router.get("/products", (req, res) => {
-            if(this.products){
-                res.send({
-                    status: "ok",
-                    payload: this.products
+app.set('views','./views');
+app.use(express.static('public'))
+app.use(express.urlencoded({
+    extended: true
+}))
+app.get('/', (req, res) => {
+    res.render('datos.hbs');
+})
+
+async function addProducts(productos) {
+    const allOfMyProducts = await knex('productos').insert(productos)
+        .then(async () => {
+            console.log("data inserted")
+            async function allProducts () {
+                const allOfMyProducts = await knex.from('productos').select('*')
+                .then((rows) => {
+                    const productosTotal = rows.reduce((rowacc, row) => {
+                        return rowacc = [...rowacc, row]
+                    }, [])
+                    return productosTotal;
                 })
-            } else {
-                res.send({error: "no hay productos"})
+                .catch((err) => console.log(err))       
+                
+                return allOfMyProducts;
             }
+            const totalProducts = await allProducts();
+        return totalProducts;
         })
-    }
-
-    getProductById() {
-        router.get("/products/:id", (req, res) => {
-            if(this.products){
-                const id = parseInt(req.params.id) 
-                const product = this.products.find((item) => item.id === id)
-
-                if(product){
-                    res.send({
-                        status: "se encotro el producto",
-                        payload: product
-                    })
-                } else {
-                    res.send({error: "no se encontro el producto buscado"})
-                }
-            } else {
-                res.send({error: "no hay productos"})
-            }
-        })
-    }
-
-    postProduct() {
-        router.post("/products", (req, res) => {
-            const id = this.products[this.products.length - 1].id + 1
-            const name = req.body.name 
-            const price = parseInt(req.body.price)
-            const timestamp = Date.now()
-            const description = req.body.description
-            const code = req.body.code
-            const photo = req.body.photo
-            const stock = req.body.stock
-
-            if(name && price && description && code && photo && stock) {
-                this.products = [...this.products, {id, name, price, timestamp, description, code, photo, stock}]
-                res.send({
-                    status: "se agrego el producto",
-                    payload: {id, name, price, timestamp, description, code, photo, stock}
-                })
-            } else {
-                res.send({error: "falta un parametro del producto"})
-            }
-        })
-    }
-
-    updateProduct() {
-        router.put("/products/:id", (req, res) => {
-            if(this.products){
-                const id = parseInt(req.params.id) 
-                const product = this.products.find((item) => item.id === id)
-                const index = this.products.findIndex((item) => item.id === id)
-
-                if(product){
-                    const name = req.body.name 
-                    const price = parseInt(req.body.price)
-                    const timestamp = Date.now()
-                    const description = req.body.description
-                    const code = req.body.code
-                    const photo = req.body.photo
-                    const stock = req.body.stock
-
-                    if(name && price && description && code && photo && stock) {
-                        this.products[index] = {id, name, price, timestamp, description, code, photo, stock}
-                        res.send({
-                            status: "se actualizo el producto",
-                            payload: {id, name, price, timestamp, description, code, photo, stock}
-                        })
-                    } else {
-                        res.send({error: "falta un parametro del producto"})
-                    }
-                } else {
-                    res.send({error: "no se encontro el producto buscado"})
-                }
-            } else {
-                res.send({error: "no hay productos"})
-            }
-        })
-    }
-
-    deleteProductById() {
-        router.delete("/products/:id", (req, res) => {
-            if(this.products) {
-                const id = parseInt(req.params.id)
-                const product = this.products.find((item) => item.id === id)
-                const index = this.products.findIndex((item) => item.id === id)
-                if(product){
-                    this.products.splice(index, 1)
-                    res.send({
-                        status: "se elimino el producto",
-                        payload: product
-                    })
-                } else {
-                    res.send({error: "no se encontro el producto buscado"})
-                }
-            } else {
-                res.send({error: "no hay productos"})
-            }
-        })
-    }
-
-    postCart() {
-        router.post("/cart", (req, res) => {
-            const id = this.carts[this.carts.length - 1].id + 1
-            const timestamp = Date.now()
-            const products = []
-            this.carts = [...this.carts, {id, timestamp, products}]
-            res.send({
-                status: "se agrego un nuevo carrito",
-                payload: {id, timestamp, products}
-            })
-        })
-    }
-
-    deleteCartById() {
-        router.delete("/cart/:id", (req, res) => {
-            if(this.carts) {
-                const id = parseInt(req.params.id)
-                const cart = this.carts.find((item) => item.id === id)
-                const index = this.carts.findIndex((item) => item.id === id)
-                if(cart){
-                    this.carts.splice(index, 1)
-                    res.send({
-                        status: "se elimino el carrito",
-                        payload: cart
-                    })
-                } else {
-                    res.send({error: "no se encontro el carrito buscado"})
-                }
-            } else {
-                res.send({error: "no hay carritos"})
-            }
-        })
-    }
-
-    getAllProductsInsideTheCart() {
-        router.get("/cart/:id/products", (req, res) => {
-            if(this.carts){
-                const id = parseInt(req.params.id) 
-                const cart = this.carts.find((item) => item.id === id)
-
-                if(cart){
-                    res.send({
-                        status: `se encotro los productos del carrito ${id}`,
-                        payload: cart.products
-                    })
-                } else {
-                    res.send({error: "no se encontro el carrito buscado"})
-                }
-            } else {
-                res.send({error: "no hay carritos"})
-            }
-        })
-    }
-
-    postProductsInsideTheCart() {
-        router.post("/cart/:id/products/:idProd", (req, res) => {
-            if(this.carts){
-                const id = parseInt(req.params.id) 
-                const idProd = parseInt(req.params.idProd) 
-                const cart = this.carts.find((item) => item.id === id)
-                const index = this.carts.findIndex((item) => item.id === id)
-                const product = this.products.find((item) => item.id === idProd)
-
-                if(cart){
-                    if(product){
-                        this.carts[index].products = [...this.carts[index].products, product]
-                        res.send({
-                            status: `se agrego el producto al carrito ${id}`,
-                            payload: cart.products
-                        })
-                    } else {
-                        res.send({error: "no se encontro el producto que quieres agregar"})
-                    }
-                } else {
-                    res.send({error: "no se encontro el carrito buscado"})
-                }
-            } else {
-                res.send({error: "no hay carritos"})
-            }
-        })
-    }
-
-    deleteProductsInsideTheCart() {
-        router.delete("/cart/:id/products/:idProd", (req, res) => {
-            if(this.carts){
-                const id = parseInt(req.params.id) 
-                const idProd = parseInt(req.params.idProd) 
-                const cart = this.carts.find((item) => item.id === id)
-                const index = this.carts.findIndex((item) => item.id === id)
-                const product = this.carts[index].products.find((item) => item.id === idProd)
-                const indexProduct = this.carts[index].products.findIndex((item) => item.id === idProd)
-
-                if(cart){
-                    if(product){
-                        this.carts[index].products.splice(indexProduct, 1)
-                        res.send({
-                            status: `se elimino el producto del carrito ${id}`,
-                            payload: cart.products
-                        })
-                    } else {
-                        res.send({error: "no se encontro el producto que quieres eliminar"})
-                    }
-                } else {
-                    res.send({error: "no se encontro el carrito buscado"})
-                }
-            } else {
-                res.send({error: "no hay carritos"})
-            }
-        })
-    }
+        .catch((err) => console.log(err))
+    return allOfMyProducts;
 }
 
+async function addMessages(message) {
+    const allOfMyMessages = await knex2('ecommerce').insert(message)
+        .then(async () => {
+            console.log("message inserted")
+            async function allMessages () {
+                const allOfMyMessages = await knex2.from('ecommerce').select('*')
+                .then((rows) => {
+                    const MessagesTotal = rows.reduce((rowacc, row) => 
+                    {
+                        return rowacc = [...rowacc, row]
+                    }
+                    , [])
+                    return MessagesTotal;
+                })
+                .catch((err) => console.log(err))       
+                
+                return allOfMyMessages;
+            }
+            const totalMessages = await allMessages();
+            return totalMessages;
+        })
+        .catch((err) => console.log(err))
+    return allOfMyMessages;
+}
 
-const products = new Server([
-        {id: 1, name: "Coca-Cola", price: 200, timestamp: Date.now(), description: "soda", code: 000, photo: "url", stock: 20},
-    ], [
-        {id: 1, timestamp: Date.now(), products: []}
-    ])
+io.on('connection', (socket) => {
+    console.log("Usuario conectado");
+    socket.emit('Bienvenido','Hola usuario.')
+    socket.on('producto', async(data) => {
+        productos = {
+            name: data.title,
+            price: data.price,
+            url: data.url,
+        }
+        let allOfProducts = await addProducts(productos);
+        allOfProducts.map((product) =>
+        {
+            io.sockets.emit('productos', product);
+        }
+        )
+    })
+    socket.on('usuario', data => {
+        io.sockets.emit('usuarios', data);
+    })
+    socket.on('mensaje', async(data) => {
+        const newMessage = {
+            mensaje: data
+        }
+        let AllofMyMessages = await addMessages(newMessage);
+        AllofMyMessages.map((message) => {
+            io.sockets.emit('mensajes', message.mensaje);
+        })
+    })
+})
 
-products.getAllProducts()
-products.getProductById()
-products.postProduct()
-products.updateProduct()
-products.deleteProductById()
-products.postCart()
-products.deleteCartById()
-products.getAllProductsInsideTheCart()
-products.postProductsInsideTheCart()
-products.deleteProductsInsideTheCart()
-
-app.listen(PORT, () => {
-    console.log(`Servirdor Http escuchando en el puerto ${PORT}`)
-});
-
+const connectedServer = httpServer.listen(PORT, function () {
+    console.log(`Servidor Http con Websockets escuchando en el puerto ${connectedServer.address().port}`);
+})
+connectedServer.on('error', error => console.log(`Error en servidor ${error}`))
