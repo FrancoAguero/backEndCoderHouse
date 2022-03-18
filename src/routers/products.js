@@ -1,17 +1,21 @@
 import { Router } from "express";
-import productosApiArch from "../daos/products/productosDaoArchivo.js";
-import productosApi from "../daos/products/productosDaoSQL.js";
+import productsApiArch from "../daos/products/productsDaoFile.js";
+import productsApi from "../daos/products/productsDaoSql.js";
+import 'dotenv/config';
 
 
-const products = process.env.DB === "sql" ? productosApi : productosApiArch; 
+const products = process.env.DB === "sql" ? productsApi : productsApiArch; 
 const productsApiRouter = new Router();
 
-let Administrador = true;
+let Admin = true;
+
+console.log(products)
 
 productsApiRouter.get('/', async (req, res) => {
     try {
-        res.json(await products.listarAll())
+        res.json(await products.listAll())
     } catch (error) {
+        console.log(error)
         res.json({
             err: -1,
             message: error
@@ -21,7 +25,7 @@ productsApiRouter.get('/', async (req, res) => {
 
 productsApiRouter.get('/:id', async (req, res) => {
     try {
-        res.json(await products.listar(req.params.id))
+        res.json(await products.list(req.params.id))
     } catch (error) {
         res.json({
             err: -1,
@@ -31,9 +35,10 @@ productsApiRouter.get('/:id', async (req, res) => {
 })
 
 productsApiRouter.post('/', async (req, res) => {
-    if(Administrador){
+    if(Admin){
         try {
-            res.json(await products.guardar(req.body))
+            console.log(req.body)
+            res.json(await products.save(req.body))
         } catch (error) {
             res.json({
                 err: -1,
@@ -50,9 +55,9 @@ productsApiRouter.post('/', async (req, res) => {
 })
 
 productsApiRouter.put('/:id', async (req, res) => {
-    if(Administrador){
+    if(Admin){
         try {
-            res.json(await products.actualizar({ ...req.body, id: req.params.id }))
+            res.json(await products.update({ ...req.body, id: req.params.id }))
         } catch (error) {
             res.json({
                 err: -1,
@@ -69,9 +74,9 @@ productsApiRouter.put('/:id', async (req, res) => {
 })
 
 productsApiRouter.delete('/:id', async (req, res) => {
-    if(Administrador){
+    if(Admin){
         try {
-            res.json(await products.borrar(req.params.id))
+            res.json(await products.delete(req.params.id))
         } catch (error) {
             res.json({
                 err: -1,

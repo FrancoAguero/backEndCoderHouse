@@ -1,6 +1,8 @@
-import * as model from "../models/productos.js";
+import * as model from "../models/products.js";
 
 class ContainerSql {
+    constructor () {
+    }
 
     async list(id) {
         const productFilter = await model.products.find({id: id})
@@ -9,27 +11,28 @@ class ContainerSql {
 
     async listAll() {
         try {
-            const allProducts = await model.products.find({})
+            const allProducts = await model.products.find()
             return allProducts
         } catch (error) {
             throw new Error(`Error al mostrar todos los productos: ${error}`)
         }
     }
 
-    async guardar(elemento) {
+    async save(elemento) {
         if(elemento){
-            const elementos =  await this.listarAll()
+            const elementos =  await this.listAll()
     
             let newId;
-    
+            const timestamp = Date.now()
+
             if(elementos.length == 0) {
                 newId = 1;
             } else {
                 newId = elementos[elementos.length - 1].id + 1
             }
     
-            const nuevoElemento = { ...elemento, id: newId }
-            const nuevoElementoSaveModel = new model.productos(nuevoElemento);
+            const nuevoElemento = { ...elemento, id: newId, timestamp }
+            const nuevoElementoSaveModel = new model.products(nuevoElemento);
             const nuevoElementoSave = await nuevoElementoSaveModel.save()
             return nuevoElementoSave;
         }
@@ -41,19 +44,19 @@ class ContainerSql {
         }
     }
 
-    async actualizar(elemento) {
+    async update(elemento) {
         const productoUpdate = await model.productos.updateOne({id: elemento.id}, {
             $set: {elemento}
         })
         return productoUpdate;
     }
 
-    async borrar(id) {
+    async delete(id) {
         const productoDelete = await model.productos.deleteOne({id: id})
         return productoDelete
     }
 
-    async borrarAll() {
+    async deleteAll() {
         const productoDeleteAll = await model.productos.deleteMany({})
         return productoDeleteAll;
     }

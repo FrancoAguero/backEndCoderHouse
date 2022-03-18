@@ -1,4 +1,4 @@
-import ContenedorArchivo from "../../contenedores/ContenedorArchivo.js";
+import ContenedorArchivo from "../../containers/ContainerFile.js";
 
 const productosApiArchivo = new ContenedorArchivo('./productos.txt');
 

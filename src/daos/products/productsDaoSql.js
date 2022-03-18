@@ -1,4 +1,4 @@
-import ContenedorSql from "../../contenedores/ContenedorSql.js";
+import ContenedorSql from "../../containers/ContainerSql.js";
 
 const productosApiSQL = new ContenedorSql();
 

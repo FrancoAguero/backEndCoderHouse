@@ -21,7 +21,7 @@ const productsSchema = new mongoose.Schema({
     code: {
         type: Number, 
         require: true, 
-        max: 100,
+        max: 1000,
     },
     photoUrl: {
         type: String, 
@@ -29,9 +29,9 @@ const productsSchema = new mongoose.Schema({
         max: 100,
     },
     price: {
-        type: String, 
+        type: Number, 
         require: true, 
-        max: 100,
+        max: 100000,
     },
     timestamp: {
         type: String, 
