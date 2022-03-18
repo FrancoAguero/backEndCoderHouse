@@ -36,7 +36,6 @@ productsApiRouter.get('/', async (req, res) => {
 
 productsApiRouter.get('/:id', async (req, res) => {
     try {
-        console.log(req.params.id)
         res.json(await products.list(req.params.id))
     } catch (error) {
         res.json({
