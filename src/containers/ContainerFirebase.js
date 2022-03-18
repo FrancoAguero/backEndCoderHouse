@@ -170,7 +170,6 @@ export class ContainerCartsFirebase extends ContainerProductsFirebase{
 
             return product
         } catch (error) {
-            console.log(error)
             throw new Error("Error al mostrar todos los productos")
         }
     }
