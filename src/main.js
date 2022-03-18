@@ -1,20 +1,18 @@
 import express from "express";
-import { MongoClient } from 'mongodb';
 import mongoose from "mongoose";
-
-
 import config from "./config.js";
 import productosApiRouter from "./routers/products.js";
+import cartsApiRouter from "./routers/carts.js";
 
 const app = express();
 
 const uri = config.mongoRemote.cnxStr;
 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/products', productosApiRouter);
+app.use('/api/carts', cartsApiRouter);
 
 
 const connectedServer = app.listen(config.PORT, () => {

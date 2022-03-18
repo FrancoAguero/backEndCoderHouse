@@ -1,21 +1,32 @@
 import { Router } from "express";
-import productsApiArch from "../daos/products/productsDaoFile.js";
-import productsApi from "../daos/products/productsDaoSql.js";
+import productsApiFile from "../daos/products/productsDaoFile.js";
+import productsApiMongo from "../daos/products/productsDaoMongo.js";
+import productosApiFirebase from "../daos/products/productsDaoFirebase.js";
 import 'dotenv/config';
 
 
-const products = process.env.DB === "sql" ? productsApi : productsApiArch; 
+const selectDao = (db) => {
+    switch (db) {
+        case "sql":
+            return productsApiMongo;
+        case "archivo":
+            return productsApiFile;
+        case "firebase":
+            return productosApiFirebase;
+        default:
+            break;
+    }
+}
+
+const products = selectDao(process.env.DB) 
 const productsApiRouter = new Router();
 
 let Admin = true;
-
-console.log(products)
 
 productsApiRouter.get('/', async (req, res) => {
     try {
         res.json(await products.listAll())
     } catch (error) {
-        console.log(error)
         res.json({
             err: -1,
             message: error
@@ -25,6 +36,7 @@ productsApiRouter.get('/', async (req, res) => {
 
 productsApiRouter.get('/:id', async (req, res) => {
     try {
+        console.log(req.params.id)
         res.json(await products.list(req.params.id))
     } catch (error) {
         res.json({
@@ -37,7 +49,6 @@ productsApiRouter.get('/:id', async (req, res) => {
 productsApiRouter.post('/', async (req, res) => {
     if(Admin){
         try {
-            console.log(req.body)
             res.json(await products.save(req.body))
         } catch (error) {
             res.json({
@@ -77,6 +88,25 @@ productsApiRouter.delete('/:id', async (req, res) => {
     if(Admin){
         try {
             res.json(await products.delete(req.params.id))
+        } catch (error) {
+            res.json({
+                err: -1,
+                message: error
+            })
+        }
+    }
+    else{
+        res.json({
+            err: -1,
+            message: "ruta no autorizada"
+        })
+    }
+})
+
+productsApiRouter.delete('/', async (req, res) => {
+    if(Admin){
+        try {
+            res.json(await products.deleteAll())
         } catch (error) {
             res.json({
                 err: -1,
